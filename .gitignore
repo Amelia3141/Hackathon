@@ -1,6 +1,8 @@
 .DS_Store
 *.joblib
 !scleroderma_rf_model.joblib
+!scleroderma_imputer.joblib
+!scleroderma_feature_columns.joblib
 *.txt
 !requirements.txt
 *.csv
