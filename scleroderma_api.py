@@ -110,11 +110,33 @@ def predict(request: PredictRequest):
     # 4. SHAP-based test recommendation
     top1, top3 = recommend_tests(features, clf, imputer, feature_columns)
 
+    # 5. SHAP explainability for all features
+    x_df = pd.DataFrame([features], columns=feature_columns)
+    x_imp = pd.DataFrame(imputer.transform(x_df), columns=feature_columns)
+    explainer = shap.TreeExplainer(clf)
+    shap_values = explainer.shap_values(x_imp)
+    if isinstance(shap_values, list) and len(shap_values) > 1:
+        shap_abs = np.abs(shap_values[1][0])
+    else:
+        shap_abs = np.abs(shap_values[0][0]) if isinstance(shap_values[0], np.ndarray) else np.abs(shap_values[0])
+    shap_feature_names = x_imp.columns.tolist()
+    shap_feature_importance = sorted(
+        zip(shap_feature_names, shap_abs),
+        key=lambda x: x[1],
+        reverse=True
+    )
+    top_shap_features = [f for f, _ in shap_feature_importance[:5]]
+    top_shap_values = [float(v) for _, v in shap_feature_importance[:5]]
+
     return {
         'scleroderma_probability': float(proba),
         'prediction': 'Likely Scleroderma' if prediction else 'Unlikely Scleroderma',
         'top_1_recommended_test': top1,
-        'top_3_recommended_tests': top3
+        'top_3_recommended_tests': top3,
+        'shap_feature_names': top_shap_features,
+        'shap_feature_values': top_shap_values,
+        'shap_all_features': shap_feature_names,
+        'shap_all_values': [float(v) for v in shap_abs]
     }
 
 if __name__ == '__main__':
