@@ -2,7 +2,7 @@ library(shiny)
 library(httr)
 library(jsonlite)
 
-backend_url <- "http://localhost:8000/predict"  # Change if backend runs elsewhere
+backend_url <- "https://scleroderma-api.onrender.com/predict"  # Change if backend runs elsewhere
 # If backend is deployed elsewhere, update this URL accordingly.
 
 ui <- fluidPage(
