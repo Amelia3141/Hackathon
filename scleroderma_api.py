@@ -27,7 +27,11 @@ def recommend_tests(patient_dict, model, imputer, feature_list, top_n=3):
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(x_imp)
     missing = [f for f in feature_list if patient_dict.get(f, np.nan) in [None, np.nan, '', 0]]
-    shap_abs = np.abs(shap_values[1][0])
+    # Robustly handle both binary and single-class SHAP output
+    if isinstance(shap_values, list) and len(shap_values) > 1:
+        shap_abs = np.abs(shap_values[1][0])
+    else:
+        shap_abs = np.abs(shap_values[0][0]) if isinstance(shap_values[0], np.ndarray) else np.abs(shap_values[0])
     ranked = sorted([(f, shap_abs[i]) for i, f in enumerate(feature_list) if f in missing], key=lambda x: x[1], reverse=True)
     top1 = ranked[0][0] if ranked else None
     top3 = [f for f, _ in ranked[:top_n]]
