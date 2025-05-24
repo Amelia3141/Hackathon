@@ -32,7 +32,14 @@ def recommend_tests(patient_dict, model, imputer, feature_list, top_n=3):
         shap_abs = np.abs(shap_values[1][0])
     else:
         shap_abs = np.abs(shap_values[0][0]) if isinstance(shap_values[0], np.ndarray) else np.abs(shap_values[0])
-    ranked = sorted([(f, shap_abs[i]) for i, f in enumerate(feature_list) if f in missing], key=lambda x: x[1], reverse=True)
+    # Map SHAP values to features by name for robust matching
+    shap_feature_names = x_imp.columns.tolist()
+    shap_value_map = dict(zip(shap_feature_names, shap_abs))
+    ranked = sorted(
+        [(f, shap_value_map.get(f, 0)) for f in missing if f in shap_feature_names],
+        key=lambda x: x[1],
+        reverse=True
+    )
     top1 = ranked[0][0] if ranked else None
     top3 = [f for f, _ in ranked[:top_n]]
     return top1, top3
