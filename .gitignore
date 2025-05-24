@@ -6,4 +6,5 @@
 *.txt
 !requirements.txt
 *.csv
+!merged_patient_data.csv
 pats
