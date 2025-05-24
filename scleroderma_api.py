@@ -68,7 +68,17 @@ def extract_features_from_text(text: str) -> dict:
     # Optionally, extract numbers for lab values with regex
     return features
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 app = FastAPI()
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="."), name="static")
+
+@app.get("/")
+def root():
+    return FileResponse("index.html")
 
 class PredictRequest(BaseModel):
     text: Optional[str] = None
