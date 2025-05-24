@@ -1,5 +1,7 @@
 .DS_Store
 *.joblib
+!scleroderma_rf_model.joblib
 *.txt
+!requirements.txt
 *.csv
 pats

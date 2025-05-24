@@ -12,7 +12,7 @@ from typing import List, Optional
 nlp = spacy.load('en_core_web_sm')
 
 # Load model and preprocessing objects
-clf = joblib.load('/Users/ameliag/Downloads/HACKATHON/scleroderma_rf_model.joblib')
+clf = joblib.load('scleroderma_rf_model.joblib')
 imputer = joblib.load('/Users/ameliag/Downloads/HACKATHON/scleroderma_imputer.joblib')
 feature_columns = joblib.load('/Users/ameliag/Downloads/HACKATHON/scleroderma_feature_columns.joblib')
 
