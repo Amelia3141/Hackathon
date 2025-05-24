@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Scleroderma Prediction Hackathon Project
 
 This repository contains code and resources for predicting scleroderma from patient data using machine learning and NLP, as well as a Shiny frontend for interactive predictions.
@@ -22,3 +23,6 @@ This repository contains code and resources for predicting scleroderma from pati
 ---
 
 **For more details or questions, contact the repo owner.**
+=======
+# Hackathon
+>>>>>>> 4d57d00c2c5a385151a5bf25c3776e9c0e16e7ee
