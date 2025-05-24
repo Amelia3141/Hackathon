@@ -16,17 +16,22 @@ clf = joblib.load('scleroderma_rf_model.joblib')
 imputer = joblib.load('scleroderma_imputer.joblib')
 feature_columns = joblib.load('scleroderma_feature_columns.joblib')
 
-# Top features for test recommendation (from previous training)
-top_features = [
-    'DAS 28 (ESR, calculated)', 'Swollen joints', 'Modified Rodnan Skin Score, only imported value',
-    'Body weight (kg)', 'Left ventricular ejection fraction (%)', 'NTproBNP (pg/ml)', 'BNP (pg/ml)',
-    'DAS 28 (CRP, calculated)', 'TAPSE: tricuspid annular plane systolic excursion in cm',
-    'Pulmonary wedge pressure (mmHg)', 'Forced Vital Capacity (FVC - % predicted)', 'DLCOc/VA (% predicted)',
-    'Right ventricular area (cm2) (right ventricular dilation)', 'Tricuspid regurgitation velocity (m/sec)',
-    '6 Minute walk test (distance in m)', 'PAPsys (mmHg)', 'Pulmonary resistance (dyn.s.cm-5)',
-    'DLCO/SB (% predicted)', 'Skin thickening of the whole finger distal to MCP (Sclerodactyly)',
-    'Skin thickening of the fingers of both hands extending proximal to the MCP joints'
-]
+import shap
+
+def recommend_tests(patient_dict, model, imputer, feature_list, top_n=3):
+    x = []
+    for f in feature_list:
+        x.append(patient_dict.get(f, np.nan))
+    x_df = pd.DataFrame([x], columns=feature_list)
+    x_imp = pd.DataFrame(imputer.transform(x_df), columns=feature_list)
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(x_imp)
+    missing = [f for f in feature_list if patient_dict.get(f, np.nan) in [None, np.nan, '', 0]]
+    shap_abs = np.abs(shap_values[1][0])
+    ranked = sorted([(f, shap_abs[i]) for i, f in enumerate(feature_list) if f in missing], key=lambda x: x[1], reverse=True)
+    top1 = ranked[0][0] if ranked else None
+    top3 = [f for f, _ in ranked[:top_n]]
+    return top1, top3
 
 # Map simple symptom keywords to feature columns (expand as needed)
 symptom_to_feature = {
@@ -70,27 +75,25 @@ def predict(request: PredictRequest):
 
     # 2. Create DataFrame and preprocess
     X_input = pd.DataFrame([features])
-    # Fill missing columns if any
     for col in feature_columns:
         if col not in X_input:
             X_input[col] = None
-    # Encode categorical (already numeric in this simple approach)
     X_input = X_input[feature_columns]
     X_input = X_input.astype(object).replace({None: np.nan})
     X_input = pd.DataFrame(imputer.transform(X_input), columns=feature_columns)
 
     # 3. Predict
-    proba = clf.predict_proba(X_input)[0, 1]  # Probability of scleroderma
+    proba = clf.predict_proba(X_input)[0, 1]
     prediction = int(proba > 0.5)
 
-    # 4. Recommend tests (top features that are missing or 0)
-    missing_tests = [feat for feat in top_features if (features.get(feat) in [None, 0])]
-    recommended_tests = missing_tests[:5]  # Recommend up to 5
+    # 4. SHAP-based test recommendation
+    top1, top3 = recommend_tests(features, clf, imputer, feature_columns)
 
     return {
         'scleroderma_probability': float(proba),
         'prediction': 'Likely Scleroderma' if prediction else 'Unlikely Scleroderma',
-        'recommended_tests': recommended_tests
+        'top_1_recommended_test': top1,
+        'top_3_recommended_tests': top3
     }
 
 if __name__ == '__main__':
