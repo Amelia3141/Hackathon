@@ -2,7 +2,10 @@ services:
   - type: web
     name: scleroderma-api
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: |
+      pip install -r requirements.txt
+      # Install torch-scatter, torch-sparse, torch-cluster, torch-spline-conv for CPU (PyTorch 2.2.2, torch-geometric 2.5.0)
+      pip install torch-scatter torch-sparse torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
     startCommand: uvicorn scleroderma_api:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION

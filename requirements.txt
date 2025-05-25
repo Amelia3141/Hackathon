@@ -16,7 +16,5 @@ torch-geometric==2.5.0
 networkx==3.3
 scipy==1.15.3
 # Additional PyTorch Geometric dependencies (install via wheels for your platform if needed)
-torch-scatter
-torch-sparse
-torch-cluster
-torch-spline-conv
+# torch-scatter, torch-sparse, torch-cluster, torch-spline-conv must be installed via the correct PyTorch Geometric wheel for your platform.
+# See: https://pytorch-geometric.com/whl/
