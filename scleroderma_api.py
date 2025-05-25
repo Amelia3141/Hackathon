@@ -26,14 +26,22 @@ feature_columns = joblib.load('scleroderma_feature_columns.joblib')
 # clf = joblib.load('scleroderma_rf_model.joblib')
 
 # Load patient demographic/clinical data
+import os
+pats_df = None
 try:
-    with open('pats', 'rb') as f:
-        pats_df = pickle.load(f)
-    if not isinstance(pats_df, pd.DataFrame):
-        pats_df = pd.DataFrame(pats_df)
+    if os.path.exists('pats'):
+        with open('pats', 'rb') as f:
+            pats_df = pickle.load(f)
+        if not isinstance(pats_df, pd.DataFrame):
+            pats_df = pd.DataFrame(pats_df)
+    elif os.path.exists('pats.csv'):
+        pats_df = pd.read_csv('pats.csv')
+        print('Loaded pats.csv for patient demographics.')
+    else:
+        print('No pats or pats.csv found.')
 except Exception as e:
     pats_df = None
-    print('Could not load pats:', e)
+    print('Could not load pats or pats.csv:', e)
 
 import shap
 
