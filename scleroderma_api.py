@@ -156,7 +156,26 @@ def extract_features_from_text(text: str) -> dict:
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
+import logging
+logging.basicConfig(level=logging.INFO)
+
 app = FastAPI()
+
+# Global exception handler for JSON errors
+def format_exc(e):
+    import traceback
+    return f"{e}:\n" + traceback.format_exc()
+
+from fastapi.requests import Request
+from fastapi.responses import JSONResponse
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logging.error(f"Unhandled error: {format_exc(exc)}")
+    return JSONResponse(
+        status_code=500,
+        content={"error": str(exc), "traceback": format_exc(exc)},
+    )
+
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="."), name="static")
@@ -222,73 +241,31 @@ def predict(request: PredictRequest):
     # After imputation, fill any remaining NaNs with zero (shouldn't happen, but for safety)
     x_imp = x_imp.fillna(0)
 
-    # 3. Prepare input for GARNN
-    # Assume single timepoint, shape (1, 1, num_features)
+    # 3. Prepare input for LogisticRegression (no GARNN)
     import logging
-    x_tensor = torch.tensor(x_imp.values, dtype=torch.float32).unsqueeze(0)
-    patient_edge_index = None
-    feature_edge_index = getattr(garnn_model, 'feature_graph_edge_index', None)
-
-    # --- Fix for feature/edge index mismatch ---
-    garnn_pred_ok = False
-    garnn_error_msg = ''
     try:
-        # Check feature vector and edge index compatibility
-        if feature_edge_index is not None:
-            max_idx = int(feature_edge_index.max().item())
-            num_features = x_tensor.shape[-1]
-            if num_features <= max_idx:
-                raise ValueError(f"Feature vector length ({num_features}) is less than or equal to max index in feature_edge_index ({max_idx})")
-        with torch.no_grad():
-            logits = garnn_model(x_tensor, patient_edge_index, feature_edge_index)
-            probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
-            subtype_idx = int(np.argmax(probs))
-            subtype_proba = float(probs[subtype_idx])
-            subtype_labels = ['none', 'limited', 'diffuse', 'overlap']  # Update if your label order differs
-            predicted_subtype = subtype_labels[subtype_idx] if subtype_idx < len(subtype_labels) else f'unknown_{subtype_idx}'
-            proba = float(np.sum(probs[1:]))  # Probability of any scleroderma (not 'none')
-            prediction = int(proba > 0.2)
-            garnn_pred_ok = True
+        clf = joblib.load('scleroderma_rf_model.joblib')
+        logging.info(f'Loaded LogisticRegression model: {type(clf)}')
+        # Ensure features are aligned and missing are filled with 0
+        x = [features.get(f, 0) for f in feature_columns]
+        x_df = pd.DataFrame([x], columns=feature_columns)
+        x_imp = pd.DataFrame(imputer.transform(x_df), columns=feature_columns)
+        probs = clf.predict_proba(x_imp)[0]
+        pred_class_idx = int(probs.argmax())
+        pred_proba = float(probs[pred_class_idx])
+        classes = [str(c) for c in (clf.classes_ if hasattr(clf, 'classes_') else range(len(probs)))]
+        predicted_class = classes[pred_class_idx] if pred_class_idx < len(classes) else str(pred_class_idx)
+        prediction = int(pred_class_idx != 0)  # 0 = 'none' if multiclass
+        # Ensure all outputs are Python built-in types
+        return {
+            'prediction': int(prediction),
+            'predicted_class': str(predicted_class),
+            'probability': float(pred_proba),
+            'all_class_probabilities': {str(cls): float(prob) for cls, prob in zip(classes, map(float, probs))}
+        }
     except Exception as e:
-        garnn_error_msg = f"GARNN prediction failed: {e}"
-        logging.error(garnn_error_msg)
-        predicted_subtype = 'error'
-        subtype_proba = float('nan')
-        proba = float('nan')
-        prediction = -1
-
-    # 4. Recommend tests (keep using RF for SHAP, or switch to GARNN if available)
-    # For now, fallback to RF for SHAP/test rec if needed
-    clf = joblib.load('scleroderma_rf_model.joblib')
-    top1, top3, antibody_suggestions = recommend_tests(features, clf, imputer, feature_columns)
-    # Optionally, include error info in response if GARNN failed
-    if not garnn_pred_ok:
-        return JSONResponse({'error': garnn_error_msg, 'prediction': 'error', 'scleroderma_probability': None, 'subtype': None, 'recommended_tests': top3, 'top_1_recommended_test': top1, 'top_3_recommended_tests': top3, 'antibody_suggestions': antibody_suggestions}, status_code=200)
-
-    # 5. SHAP explainability (using RF explainer for now)
-    explainer = shap.TreeExplainer(clf)
-    shap_values = explainer.shap_values(x_imp)
-    shap_feature_importance = list(zip(feature_columns, np.abs(shap_values[1][0]) if isinstance(shap_values, list) else np.abs(shap_values[0])))
-    shap_feature_importance.sort(key=lambda x: -x[1])
-    top_shap_features = [f for f, v in shap_feature_importance[:5]]
-    top_shap_values = [float(v) for _, v in shap_feature_importance[:5]]
-    shap_feature_names = [f for f, v in shap_feature_importance]
-    shap_abs = [float(v) for f, v in shap_feature_importance]
-
-    return {
-        'scleroderma_probability': float(proba),
-        'prediction': 'Likely Scleroderma' if prediction else 'Unlikely Scleroderma',
-        'predicted_subtype': predicted_subtype,
-        'subtype_probability': subtype_proba,
-        'top_1_recommended_test': top1,
-        'top_3_recommended_tests': top3,
-        'recommended_antibody_tests': antibody_suggestions,
-        'shap_feature_names': top_shap_features,
-        'shap_feature_values': top_shap_values,
-        'shap_all_features': shap_feature_names,
-        'shap_all_values': [float(v) for v in shap_abs]
-    }
-
+        logging.error(f'LogisticRegression prediction failed: {e}')
+        return JSONResponse({'error': f'LogisticRegression prediction failed: {e}'}, status_code=200)
 
 if __name__ == '__main__':
     uvicorn.run(app, host='0.0.0.0', port=8000)
