@@ -47,20 +47,26 @@ document.getElementById('predict-form').addEventListener('submit', async functio
         // Badge for prediction
         let badgeClass = '';
         let badgeText = '';
-        if (data.prediction.toLowerCase().includes('likely')) {
-            badgeClass = data.prediction.toLowerCase().includes('un') ? 'prediction-badge prediction-unlikely' : 'prediction-badge prediction-likely';
-            badgeText = data.prediction;
+        // Accept both string and numeric (0/1) predictions
+        let predValue = data.prediction;
+        if (typeof predValue === 'number') {
+            badgeText = predValue === 1 ? 'Likely Scleroderma' : 'Unlikely Scleroderma';
+            badgeClass = predValue === 1 ? 'prediction-badge prediction-likely' : 'prediction-badge prediction-unlikely';
+        } else if (typeof predValue === 'string') {
+            badgeText = predValue;
+            badgeClass = predValue.toLowerCase().includes('un') ? 'prediction-badge prediction-unlikely' : 'prediction-badge prediction-likely';
         }
+        // Use correct keys from backend
         resultDiv.innerHTML = `
             <h3>Prediction Result</h3>
             <div style="margin-bottom:0.6em;">
                 ${badgeText ? `<span class="${badgeClass}" role="status">${badgeText}</span>` : ''}
             </div>
-            <p><strong>Scleroderma Probability:</strong> ${(data.scleroderma_probability*100).toFixed(1)}%</p>
-            <p><strong>Top 1 Recommended Test:</strong> ${data.top_1_recommended_test}</p>
-            <p><strong>Top 3 Recommended Tests:</strong> ${data.top_3_recommended_tests.join(', ')}</p>
+            <p><strong>Scleroderma Probability:</strong> ${(data.probability*100).toFixed(1)}%</p>
+            <p><strong>Top 1 Recommended Test:</strong> ${data.top_1_recommended_test || ''}</p>
+            <p><strong>Top 3 Recommended Tests:</strong> ${(data.top_3_recommended_tests || []).join(', ')}</p>
             <h3>Recommended Antibody Tests</h3>
-            <ul style="margin-top:0;">${(data.recommended_antibody_tests || []).map(t => {
+            <ul style="margin-top:0;">${(data.antibody_suggestions || []).map(t => {
                 if (Array.isArray(t)) {
                     // [antibody, association]
                     return `<li><b>${t[0]}</b><br><span style='font-size:0.97em;color:#444;'>${t[1]}</span></li>`;
@@ -68,8 +74,10 @@ document.getElementById('predict-form').addEventListener('submit', async functio
                     return `<li>${t}</li>`;
                 }
             }).join('')}</ul>
-
+            ${data.most_likely_subtype ? `<p><strong>Most Likely Subtype:</strong> ${data.most_likely_subtype}</p>` : ''}
         `;
+        spinner.style.display = 'none';
+        submitBtn.disabled = false;
         
         
         
