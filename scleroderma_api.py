@@ -19,6 +19,13 @@ feature_columns = joblib.load('scleroderma_feature_columns.joblib')
 # If you want to keep RF for fallback, keep the following line commented:
 # clf = joblib.load('scleroderma_rf_model.joblib')
 
+# Load imputer for preprocessing
+try:
+    imputer = joblib.load('scleroderma_imputer.joblib')
+except Exception as e:
+    imputer = None
+    print('Could not load scleroderma_imputer.joblib:', e)
+
 # Load patient demographic/clinical data
 import os
 pats_df = None
