@@ -46,27 +46,30 @@ except Exception as e:
 import shap
 
 def recommend_tests(patient_dict, model, imputer, feature_list, top_n=3):
+    import numpy as np
+    import pandas as pd
     x = []
     for f in feature_list:
         x.append(patient_dict.get(f, np.nan))
     x_df = pd.DataFrame([x], columns=feature_list)
     x_imp = pd.DataFrame(imputer.transform(x_df), columns=feature_list)
-    explainer = shap.TreeExplainer(model)
-    shap_values = explainer.shap_values(x_imp)
     missing = [f for f in feature_list if patient_dict.get(f, np.nan) in [None, np.nan, '', 0]]
-    # Robustly handle both binary and single-class SHAP output
-    if isinstance(shap_values, list) and len(shap_values) > 1:
-        shap_abs = np.abs(shap_values[1][0])
+    # Use LogisticRegression coefficients for feature importance
+    if hasattr(model, 'coef_'):
+        # If multiclass, use the class most associated with scleroderma (usually class 1)
+        if model.coef_.ndim == 1:
+            coef_abs = np.abs(model.coef_)
+        else:
+            # Use the class 1 coefficients if binary, else max across classes
+            coef_abs = np.abs(model.coef_[1]) if model.coef_.shape[0] > 1 else np.abs(model.coef_[0])
+        coef_map = dict(zip(feature_list, coef_abs))
+        ranked = sorted(
+            [(f, coef_map.get(f, 0)) for f in missing if f in coef_map],
+            key=lambda x: x[1],
+            reverse=True
+        )
     else:
-        shap_abs = np.abs(shap_values[0][0]) if isinstance(shap_values[0], np.ndarray) else np.abs(shap_values[0])
-    # Map SHAP values to features by name for robust matching
-    shap_feature_names = x_imp.columns.tolist()
-    shap_value_map = dict(zip(shap_feature_names, shap_abs))
-    ranked = sorted(
-        [(f, shap_value_map.get(f, 0)) for f in missing if f in shap_feature_names],
-        key=lambda x: x[1],
-        reverse=True
-    )
+        ranked = [(f, 0) for f in missing]
     top1 = ranked[0][0] if ranked else None
     top3 = [f for f, _ in ranked[:top_n]]
 
@@ -256,13 +259,21 @@ def predict(request: PredictRequest):
         classes = [str(c) for c in (clf.classes_ if hasattr(clf, 'classes_') else range(len(probs)))]
         predicted_class = classes[pred_class_idx] if pred_class_idx < len(classes) else str(pred_class_idx)
         prediction = int(pred_class_idx != 0)  # 0 = 'none' if multiclass
-        # Ensure all outputs are Python built-in types
-        return {
+        # Recommend next tests using model coefficients (importance)
+        top1, top3, antibody_suggestions = recommend_tests(features, clf, imputer, feature_columns)
+        result = {
             'prediction': int(prediction),
             'predicted_class': str(predicted_class),
             'probability': float(pred_proba),
-            'all_class_probabilities': {str(cls): float(prob) for cls, prob in zip(classes, map(float, probs))}
+            'all_class_probabilities': {str(cls): float(prob) for cls, prob in zip(classes, map(float, probs))},
+            'top_1_recommended_test': top1,
+            'top_3_recommended_tests': top3
         }
+        # If scleroderma is likely or probability is high, add antibody suggestions and subtype
+        if prediction == 1 or float(pred_proba) > 0.7:
+            result['antibody_suggestions'] = antibody_suggestions
+            result['most_likely_subtype'] = str(predicted_class)
+        return result
     except Exception as e:
         logging.error(f'LogisticRegression prediction failed: {e}')
         return JSONResponse({'error': f'LogisticRegression prediction failed: {e}'}, status_code=200)
