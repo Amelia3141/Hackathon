@@ -7,7 +7,6 @@ import numpy as np
 import spacy
 import uvicorn
 from typing import List, Optional
-import pickle
 from datetime import datetime
 
 # Load spaCy model for NLP (using en_core_web_sm, replace with scispaCy for medical terms if needed)
@@ -38,7 +37,7 @@ except Exception as e:
     pats_df = None
     print('Could not load pats or pats.csv:', e)
 
-import shap
+
 
 def recommend_tests(patient_dict, model, imputer, feature_list, top_n=3):
     import numpy as np
