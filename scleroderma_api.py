@@ -13,14 +13,9 @@ from datetime import datetime
 # Load spaCy model for NLP (using en_core_web_sm, replace with scispaCy for medical terms if needed)
 nlp = spacy.load('en_core_web_sm')
 
-# Load GARNN model and preprocessing objects
-import torch
-from garnn_model import GARNN
-
-garnn_model = torch.load('garnn_best_model.pt', map_location=torch.device('cpu'))
-garnn_model.eval()
-# TODO: load scaler, feature graph, and other preprocessing as needed
-imputer = joblib.load('scleroderma_imputer.joblib')
+# Only LogisticRegression model is used in this API
+# If you want to keep RF for fallback, keep the following line commented:
+# clf = joblib.load('scleroderma_rf_model.joblib')
 feature_columns = joblib.load('scleroderma_feature_columns.joblib')
 # If you want to keep RF for fallback, keep the following line commented:
 # clf = joblib.load('scleroderma_rf_model.joblib')
