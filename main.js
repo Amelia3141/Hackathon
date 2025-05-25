@@ -42,8 +42,8 @@ document.getElementById('predict-form').addEventListener('submit', async functio
         });
         if (!response.ok) throw new Error('Server error: ' + response.status);
         const data = await response.json();
-        // SHAP textual explanation
-        const topFeatures = data.shap_feature_names.map((f, i) => `${f} (${data.shap_feature_values[i].toFixed(3)})`).join(', ');
+        
+        
         // Badge for prediction
         let badgeClass = '';
         let badgeText = '';
@@ -68,23 +68,13 @@ document.getElementById('predict-form').addEventListener('submit', async functio
                     return `<li>${t}</li>`;
                 }
             }).join('')}</ul>
-            <h3>Model Explainability</h3>
-            <p>This prediction was most influenced by: <strong>${topFeatures}</strong></p>
-            <canvas id="shapChart" height="200"></canvas>
+
         `;
-        // Draw SHAP bar chart
-        if (window.shapChart) window.shapChart.destroy();
-        const ctx = document.getElementById('shapChart').getContext('2d');
-        window.shapChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: data.shap_feature_names,
-                datasets: [{
-                    label: 'SHAP Value (Feature Importance)',
-                    data: data.shap_feature_values,
-                    backgroundColor: 'rgba(51, 102, 153, 0.7)'
-                }]
-            },
+        
+        
+        
+        
+
             options: {
                 indexAxis: 'y',
                 plugins: {
