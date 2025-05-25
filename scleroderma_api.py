@@ -208,6 +208,7 @@ def predict(request: PredictRequest):
             # Add more fields as needed
     
     # 2. Create DataFrame and preprocess
+    x_df = pd.DataFrame([features], columns=feature_columns)
     x_imp = pd.DataFrame(imputer.transform(x_df), columns=feature_columns)
 
     # 3. Prepare input for GARNN
@@ -216,10 +217,20 @@ def predict(request: PredictRequest):
     # Dummy patient and feature graph indices (replace with real if available)
     patient_edge_index = None
     feature_edge_index = garnn_model.feature_graph_edge_index if hasattr(garnn_model, 'feature_graph_edge_index') else None
+    import logging
     with torch.no_grad():
         logits = garnn_model(x_tensor, patient_edge_index, feature_edge_index)
         probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
-        proba = probs[1]
+        try:
+            subtype_idx = int(np.argmax(probs))
+            subtype_proba = float(probs[subtype_idx])
+            subtype_labels = ['none', 'limited', 'diffuse', 'overlap']  # Update if your label order differs
+            predicted_subtype = subtype_labels[subtype_idx] if subtype_idx < len(subtype_labels) else f'unknown_{subtype_idx}'
+        except Exception as e:
+            logging.error(f"Subtype prediction error: {e}; probs={probs}")
+            predicted_subtype = 'error'
+            subtype_proba = float('nan')
+        proba = float(np.sum(probs[1:]))  # Probability of any scleroderma (not 'none')
     # Use best threshold from training (0.2)
     prediction = int(proba > 0.2)
 
@@ -241,6 +252,8 @@ def predict(request: PredictRequest):
     return {
         'scleroderma_probability': float(proba),
         'prediction': 'Likely Scleroderma' if prediction else 'Unlikely Scleroderma',
+        'predicted_subtype': predicted_subtype,
+        'subtype_probability': subtype_proba,
         'top_1_recommended_test': top1,
         'top_3_recommended_tests': top3,
         'recommended_antibody_tests': antibody_suggestions,
