@@ -26,7 +26,11 @@ document.getElementById('predict-form').addEventListener('submit', async functio
     };
 
     const resultDiv = document.getElementById('result');
-    resultDiv.innerHTML = '<em>Loading...</em>';
+    const spinner = document.getElementById('loading-spinner');
+    const submitBtn = document.getElementById('submit-btn');
+    resultDiv.innerHTML = '';
+    spinner.style.display = 'block';
+    submitBtn.disabled = true;
 
     try {
         const response = await fetch('/predict', {
@@ -40,12 +44,30 @@ document.getElementById('predict-form').addEventListener('submit', async functio
         const data = await response.json();
         // SHAP textual explanation
         const topFeatures = data.shap_feature_names.map((f, i) => `${f} (${data.shap_feature_values[i].toFixed(3)})`).join(', ');
+        // Badge for prediction
+        let badgeClass = '';
+        let badgeText = '';
+        if (data.prediction.toLowerCase().includes('likely')) {
+            badgeClass = data.prediction.toLowerCase().includes('un') ? 'prediction-badge prediction-unlikely' : 'prediction-badge prediction-likely';
+            badgeText = data.prediction;
+        }
         resultDiv.innerHTML = `
             <h3>Prediction Result</h3>
-            <p><strong>Scleroderma Probability:</strong> ${data.scleroderma_probability}</p>
-            <p><strong>Prediction:</strong> ${data.prediction}</p>
+            <div style="margin-bottom:0.6em;">
+                ${badgeText ? `<span class="${badgeClass}" role="status">${badgeText}</span>` : ''}
+            </div>
+            <p><strong>Scleroderma Probability:</strong> ${(data.scleroderma_probability*100).toFixed(1)}%</p>
             <p><strong>Top 1 Recommended Test:</strong> ${data.top_1_recommended_test}</p>
             <p><strong>Top 3 Recommended Tests:</strong> ${data.top_3_recommended_tests.join(', ')}</p>
+            <h3>Recommended Antibody Tests</h3>
+            <ul style="margin-top:0;">${(data.recommended_antibody_tests || []).map(t => {
+                if (Array.isArray(t)) {
+                    // [antibody, association]
+                    return `<li><b>${t[0]}</b><br><span style='font-size:0.97em;color:#444;'>${t[1]}</span></li>`;
+                } else {
+                    return `<li>${t}</li>`;
+                }
+            }).join('')}</ul>
             <h3>Model Explainability</h3>
             <p>This prediction was most influenced by: <strong>${topFeatures}</strong></p>
             <canvas id="shapChart" height="200"></canvas>

@@ -3,42 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scleroderma Test Recommendation</title>
+    <title>Scleroderma Prediction Tool</title>
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>Scleroderma Test Recommendation</h1>
-        <form id="predict-form">
-            <label for="symptoms">Patient Symptoms (free text):</label>
-            <textarea id="symptoms" name="symptoms" rows="3" placeholder="Describe patient symptoms..."></textarea>
-            <h2>Clinical Features</h2>
-            <div class="features-grid">
-                <label><input type="checkbox" name="features" value="Swollen joints"> Swollen joints</label>
-                <label><input type="checkbox" name="features" value="Skin thickening of the whole finger distal to MCP (Sclerodactyly)"> Skin thickening of the whole finger distal to MCP (Sclerodactyly)</label>
-                <label><input type="checkbox" name="features" value="Myalgia"> Myalgia</label>
-                <label><input type="checkbox" name="features" value="Muscle weakness"> Muscle weakness</label>
-                <label><input type="checkbox" name="features" value="Dyspnea (NYHA-stage)"> Dyspnea (NYHA-stage)</label>
-                <label><input type="checkbox" name="features" value="DAS 28 (ESR, calculated)"> DAS 28 (ESR, calculated)</label>
-                <label><input type="checkbox" name="features" value="DAS 28 (CRP, calculated)"> DAS 28 (CRP, calculated)</label>
-                <label><input type="checkbox" name="features" value="Body weight (kg)"> Body weight (kg)</label>
-                <label><input type="checkbox" name="features" value="BNP (pg/ml)"> BNP (pg/ml)</label>
-                <label><input type="checkbox" name="features" value="NTproBNP (pg/ml)"> NTproBNP (pg/ml)</label>
-                <label><input type="checkbox" name="features" value="Forced Vital Capacity (FVC - % predicted)"> Forced Vital Capacity (FVC - % predicted)</label>
-                <label><input type="checkbox" name="features" value="DLCO/SB (% predicted)"> DLCO/SB (% predicted)</label>
-            </div>
-            <h2>Lab Values</h2>
-            <label>BNP (pg/ml): <input type="number" name="BNP (pg/ml)" step="any"></label>
-            <label>NTproBNP (pg/ml): <input type="number" name="NTproBNP (pg/ml)" step="any"></label>
-            <label>Body weight (kg): <input type="number" name="Body weight (kg)" step="any"></label>
-            <label>DAS 28 (ESR, calculated): <input type="number" name="DAS 28 (ESR, calculated)" step="any"></label>
-            <label>DAS 28 (CRP, calculated): <input type="number" name="DAS 28 (CRP, calculated)" step="any"></label>
-            <label>Forced Vital Capacity (FVC - % predicted): <input type="number" name="Forced Vital Capacity (FVC - % predicted)" step="any"></label>
-            <label>DLCO/SB (% predicted): <input type="number" name="DLCO/SB (% predicted)" step="any"></label>
-            <button type="submit">Get Recommendation</button>
-        </form>
-        <div id="result"></div>
-    </div>
+    <header class="main-header" aria-label="Main header">
+        <div class="header-content">
+            <i class="fa-solid fa-stethoscope fa-2x" aria-hidden="true"></i>
+            <span class="header-title">Scleroderma Prediction & Test Recommendation</span>
+        </div>
+    </header>
+    <main>
+        <div class="container">
+            <form id="predict-form" aria-label="Scleroderma prediction form">
+                <div class="card">
+                    <h2><i class="fa-regular fa-file-lines"></i> Patient Symptoms <span class="info-tooltip" title="Describe symptoms in free text for NLP analysis."><i class="fa fa-info-circle"></i></span></h2>
+                    <textarea id="symptoms" name="symptoms" rows="3" placeholder="Describe patient symptoms..." aria-label="Patient symptoms"></textarea>
+                </div>
+                <div class="card">
+                    <h2><i class="fa-solid fa-notes-medical"></i> Clinical Features <span class="info-tooltip" title="Select all that apply."><i class="fa fa-info-circle"></i></span></h2>
+                    <div class="features-grid">
+                        <label><input type="checkbox" name="features" value="Swollen joints"> Swollen joints</label>
+                        <label><input type="checkbox" name="features" value="Skin thickening of the whole finger distal to MCP (Sclerodactyly)"> Sclerodactyly</label>
+                        <label><input type="checkbox" name="features" value="Myalgia"> Myalgia</label>
+                        <label><input type="checkbox" name="features" value="Muscle weakness"> Muscle weakness</label>
+                        <label><input type="checkbox" name="features" value="Dyspnea (NYHA-stage)"> Dyspnea (NYHA-stage)</label>
+                        <label><input type="checkbox" name="features" value="DAS 28 (ESR, calculated)"> DAS 28 (ESR, calculated)</label>
+                        <label><input type="checkbox" name="features" value="DAS 28 (CRP, calculated)"> DAS 28 (CRP, calculated)</label>
+                        <label><input type="checkbox" name="features" value="Body weight (kg)"> Body weight (kg)</label>
+                        <label><input type="checkbox" name="features" value="BNP (pg/ml)"> BNP (pg/ml)</label>
+                        <label><input type="checkbox" name="features" value="NTproBNP (pg/ml)"> NTproBNP (pg/ml)</label>
+                        <label><input type="checkbox" name="features" value="Forced Vital Capacity (FVC - % predicted)"> FVC (% predicted)</label>
+                        <label><input type="checkbox" name="features" value="DLCO/SB (% predicted)"> DLCO/SB (% predicted)</label>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2><i class="fa-solid fa-vials"></i> Lab Values <span class="info-tooltip" title="Enter lab values if available."><i class="fa fa-info-circle"></i></span></h2>
+                    <div class="lab-grid">
+                        <label>BNP (pg/ml): <input type="number" name="BNP (pg/ml)" step="any" aria-label="BNP (pg/ml)"></label>
+                        <label>NTproBNP (pg/ml): <input type="number" name="NTproBNP (pg/ml)" step="any" aria-label="NTproBNP (pg/ml)"></label>
+                        <label>Body weight (kg): <input type="number" name="Body weight (kg)" step="any" aria-label="Body weight (kg)"></label>
+                        <label>DAS 28 (ESR, calculated): <input type="number" name="DAS 28 (ESR, calculated)" step="any" aria-label="DAS 28 (ESR, calculated)"></label>
+                        <label>DAS 28 (CRP, calculated): <input type="number" name="DAS 28 (CRP, calculated)" step="any" aria-label="DAS 28 (CRP, calculated)"></label>
+                        <label>FVC (% predicted): <input type="number" name="Forced Vital Capacity (FVC - % predicted)" step="any" aria-label="FVC (% predicted)"></label>
+                        <label>DLCO/SB (% predicted): <input type="number" name="DLCO/SB (% predicted)" step="any" aria-label="DLCO/SB (% predicted)"></label>
+                    </div>
+                </div>
+                <button type="submit" id="submit-btn"><i class="fa fa-magic"></i> Get Recommendation</button>
+                <div id="loading-spinner" class="spinner" aria-live="polite" style="display:none;"><i class="fa fa-spinner fa-spin fa-2x"></i> Loading...</div>
+            </form>
+            <div id="result" aria-live="polite"></div>
+        </div>
+    </main>
+    <footer class="main-footer" aria-label="Footer">
+        <div class="footer-content">Powered by AI &mdash; <a href="https://github.com/Amelia3141/Hackathon" target="_blank" rel="noopener">View on GitHub</a></div>
+    </footer>
     <script src="/static/main.js"></script>
 </body>
 </html>
