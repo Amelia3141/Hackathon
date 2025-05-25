@@ -78,22 +78,6 @@ document.getElementById('predict-form').addEventListener('submit', async functio
         `;
         spinner.style.display = 'none';
         submitBtn.disabled = false;
-        
-        
-        
-        
-
-            options: {
-                indexAxis: 'y',
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    x: { title: { display: true, text: 'Importance' } },
-                    y: { title: { display: true, text: 'Feature' } }
-                }
-            }
-        });
     } catch (error) {
         resultDiv.innerHTML = `<span style="color:red;">Error: ${error.message}</span>`;
     }
