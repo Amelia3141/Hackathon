@@ -13,11 +13,7 @@ from datetime import datetime
 nlp = spacy.load('en_core_web_sm')
 
 # Only LogisticRegression model is used in this API
-# If you want to keep RF for fallback, keep the following line commented:
-# clf = joblib.load('scleroderma_rf_model.joblib')
 feature_columns = joblib.load('scleroderma_feature_columns.joblib')
-# If you want to keep RF for fallback, keep the following line commented:
-# clf = joblib.load('scleroderma_rf_model.joblib')
 
 # Load imputer for preprocessing
 try:
@@ -243,7 +239,7 @@ def predict(request: PredictRequest):
     # 3. Prepare input for LogisticRegression
     import logging
     try:
-        clf = joblib.load('scleroderma_rf_model.joblib')
+        clf = joblib.load('scleroderma_lr_model.joblib')
         logging.info(f'Loaded LogisticRegression model: {type(clf)}')
         # Ensure features are aligned and missing are filled with 0
         x = [features.get(f, 0) for f in feature_columns]
