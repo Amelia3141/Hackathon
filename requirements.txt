@@ -8,3 +8,15 @@ joblib==1.4.2
 # For NLP model
 en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
 shap==0.47.2
+# Deep learning for GARNN
+# Please install torch-geometric according to https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html
+# Example for CPU only:
+torch==2.2.2
+torch-geometric==2.5.0
+networkx==3.3
+scipy==1.15.3
+# Additional PyTorch Geometric dependencies (install via wheels for your platform if needed)
+torch-scatter
+torch-sparse
+torch-cluster
+torch-spline-conv
