@@ -23,16 +23,11 @@ feature_columns = joblib.load('scleroderma_feature_columns.joblib')
 import os
 pats_df = None
 try:
-    if os.path.exists('pats'):
-        with open('pats', 'rb') as f:
-            pats_df = pickle.load(f)
-        if not isinstance(pats_df, pd.DataFrame):
-            pats_df = pd.DataFrame(pats_df)
-    elif os.path.exists('pats.csv'):
+    if os.path.exists('pats.csv'):
         pats_df = pd.read_csv('pats.csv')
         print('Loaded pats.csv for patient demographics.')
     else:
-        print('No pats or pats.csv found.')
+        print('No pats.csv found.' )
 except Exception as e:
     pats_df = None
     print('Could not load pats or pats.csv:', e)
@@ -238,7 +233,7 @@ def predict(request: PredictRequest):
     # After imputation, fill any remaining NaNs with zero (shouldn't happen, but for safety)
     x_imp = x_imp.fillna(0)
 
-    # 3. Prepare input for LogisticRegression (no GARNN)
+    # 3. Prepare input for LogisticRegression
     import logging
     try:
         clf = joblib.load('scleroderma_rf_model.joblib')
