@@ -239,8 +239,8 @@ def predict(request: PredictRequest):
     # 3. Prepare input for LogisticRegression
     import logging
     try:
-        clf = joblib.load('scleroderma_lr_model.joblib')
-        logging.info(f'Loaded LogisticRegression model: {type(clf)}')
+        clf = joblib.load('scleroderma_rf_model.joblib')
+        logging.info(f'Loaded RandomForest model: {type(clf)}')
         # Ensure features are aligned and missing are filled with 0
         x = [features.get(f, 0) for f in feature_columns]
         x_df = pd.DataFrame([x], columns=feature_columns)
