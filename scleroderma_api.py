@@ -224,31 +224,46 @@ def predict(request: PredictRequest):
 
     # 3. Prepare input for GARNN
     # Assume single timepoint, shape (1, 1, num_features)
-    x_tensor = torch.tensor(x_imp.values, dtype=torch.float32).unsqueeze(0)
-    # Dummy patient and feature graph indices (replace with real if available)
-    patient_edge_index = None
-    feature_edge_index = garnn_model.feature_graph_edge_index if hasattr(garnn_model, 'feature_graph_edge_index') else None
     import logging
-    with torch.no_grad():
-        logits = garnn_model(x_tensor, patient_edge_index, feature_edge_index)
-        probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
-        try:
+    x_tensor = torch.tensor(x_imp.values, dtype=torch.float32).unsqueeze(0)
+    patient_edge_index = None
+    feature_edge_index = getattr(garnn_model, 'feature_graph_edge_index', None)
+
+    # --- Fix for feature/edge index mismatch ---
+    garnn_pred_ok = False
+    garnn_error_msg = ''
+    try:
+        # Check feature vector and edge index compatibility
+        if feature_edge_index is not None:
+            max_idx = int(feature_edge_index.max().item())
+            num_features = x_tensor.shape[-1]
+            if num_features <= max_idx:
+                raise ValueError(f"Feature vector length ({num_features}) is less than or equal to max index in feature_edge_index ({max_idx})")
+        with torch.no_grad():
+            logits = garnn_model(x_tensor, patient_edge_index, feature_edge_index)
+            probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
             subtype_idx = int(np.argmax(probs))
             subtype_proba = float(probs[subtype_idx])
             subtype_labels = ['none', 'limited', 'diffuse', 'overlap']  # Update if your label order differs
             predicted_subtype = subtype_labels[subtype_idx] if subtype_idx < len(subtype_labels) else f'unknown_{subtype_idx}'
-        except Exception as e:
-            logging.error(f"Subtype prediction error: {e}; probs={probs}")
-            predicted_subtype = 'error'
-            subtype_proba = float('nan')
-        proba = float(np.sum(probs[1:]))  # Probability of any scleroderma (not 'none')
-    # Use best threshold from training (0.2)
-    prediction = int(proba > 0.2)
+            proba = float(np.sum(probs[1:]))  # Probability of any scleroderma (not 'none')
+            prediction = int(proba > 0.2)
+            garnn_pred_ok = True
+    except Exception as e:
+        garnn_error_msg = f"GARNN prediction failed: {e}"
+        logging.error(garnn_error_msg)
+        predicted_subtype = 'error'
+        subtype_proba = float('nan')
+        proba = float('nan')
+        prediction = -1
 
     # 4. Recommend tests (keep using RF for SHAP, or switch to GARNN if available)
     # For now, fallback to RF for SHAP/test rec if needed
     clf = joblib.load('scleroderma_rf_model.joblib')
     top1, top3, antibody_suggestions = recommend_tests(features, clf, imputer, feature_columns)
+    # Optionally, include error info in response if GARNN failed
+    if not garnn_pred_ok:
+        return JSONResponse({'error': garnn_error_msg, 'prediction': 'error', 'scleroderma_probability': None, 'subtype': None, 'recommended_tests': top3, 'top_1_recommended_test': top1, 'top_3_recommended_tests': top3, 'antibody_suggestions': antibody_suggestions}, status_code=200)
 
     # 5. SHAP explainability (using RF explainer for now)
     explainer = shap.TreeExplainer(clf)
