@@ -217,7 +217,10 @@ def predict(request: PredictRequest):
     
     # 2. Create DataFrame and preprocess
     x_df = pd.DataFrame([features], columns=feature_columns)
+    # Impute missing values (should be rare now, but for robustness)
     x_imp = pd.DataFrame(imputer.transform(x_df), columns=feature_columns)
+    # After imputation, fill any remaining NaNs with zero (shouldn't happen, but for safety)
+    x_imp = x_imp.fillna(0)
 
     # 3. Prepare input for GARNN
     # Assume single timepoint, shape (1, 1, num_features)
