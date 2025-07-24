@@ -6,7 +6,7 @@ For more information, below are the slides from the presentation at the hackatho
 
 ### 📊 Presentation: "ScleroDx - A Diagnostic Algorithm WebTool"
 
-**[📄 View Full Presentation (PDF)](Scleroderma%20Hackathon.pdf)**
+**[📄 View Full Presentation (PDF)](Scleroderma_Hackathon.pdf)**
 
 ## Project Structure
 - `scleroderma_api.py`: FastAPI backend for predictions and recommendations
