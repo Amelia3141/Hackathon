@@ -2,6 +2,11 @@
 # Scleroderma Prediction Hackathon Project
 
 This repository contains code and resources for predicting scleroderma from patient data using machine learning and NLP, as well as a Shiny frontend for interactive predictions.
+For more information, below are the slides from the presentation at the hackathon:
+
+### 📊 Presentation: "ScleroDx - A Diagnostic Algorithm WebTool"
+
+**[📄 View Full Presentation (PDF)](Scleroderma%20Hackathon.pdf)**
 
 ## Project Structure
 - `scleroderma_api.py`: FastAPI backend for predictions and recommendations
