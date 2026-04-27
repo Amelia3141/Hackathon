@@ -29,5 +29,3 @@ For more information, below are the slides from the presentation at the hackatho
 
 **For more details or questions, contact the repo owner.**
 =======
-# Hackathon
->>>>>>> 4d57d00c2c5a385151a5bf25c3776e9c0e16e7ee
